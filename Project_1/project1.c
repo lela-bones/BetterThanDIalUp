@@ -1,31 +1,130 @@
-#include <mpi.h>
+#include "mpi.h"
+#include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
-int main(int argc, char ** argv) {
-    int size, rank;
-    int length;
-    char name[80];
-    MPI_Status status;
-    int i;
+// Function Declartions.
+void PopulateArray(int *, int, int);
+void PrintArray(int *, int);
 
+int main(int argc, char *argv[])
+{
+    int size, myid, numprocs, i;
+    int *sendcounts, *displs; // Array for how many elements to send and displacement of elements.
+    int *ranArry = NULL; //array of random size.
+    int *localArray; // used to store random values for each process.
+    int rem; // remaining elements after division among processes.
+    int sum = 0; // Sum of counts. Used to calculate displacements
+    int range; //Range for the random numbers
+    int totalParity, sumParity;
+    double PI25DT = 3.14159265358979323846264;
+    double mypi, pi, h, x;
+    
     MPI_Init(&argc, &argv);
-    //note that argc and argv are passed by address
-    MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-    MPI_Comm_size(MPI_COMM_WORLD,&size);
-    MPI_Get_processor_name(name,&length);
+    MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
+    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
 
-    if (rank ==0) {
-        //server commands
-        printf("Hello MPI from the server process!\n");
-        for(i = 1; i < size; i++){
-            MPI_Recv(name, 80, MPI_CHAR, i, 999, MPI_COMM_WORLD, &status);
-            printf("Hello MPI!\n");
-            printf("mesg from %d of %d on %s\n", i, size, name);
+    while (1)
+    {
+        if (myid == 0)
+        {
+
+            // Enter the size of the array and allocs memory.
+            printf("Enter the size of the array: (0 quits) ");
+            scanf("%d", &size);
+            ranArry = (int *)malloc(size * sizeof(int));
         }
+        MPI_Bcast(&size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+        if (size == 0)
+        {
+            // end program
+            break;
+        }
+        else
+        {
+
+            localArray = (int *)malloc(size/numprocs+1 * sizeof(int));
+            sendcounts = (int *)malloc(numprocs * sizeof(int));
+            displs = (int *)malloc(numprocs * sizeof(int));
+
+            if (myid == 0)
+            {
+                //sets the random range for numbers to be gen.
+                srand(time(NULL));
+                printf("Enter Range for random numbers: ");
+                scanf("%d", &range);
+                
+                PopulateArray(ranArry, size, range);
+                //PrintArray(ranArry, size);
+
+                rem = size % numprocs;
+                // calculate send counts and displacements
+                for (int i = 0; i < numprocs; i++) 
+                {
+                    sendcounts[i] = size/numprocs;
+                    if (rem > 0) 
+                    {
+                        sendcounts[i]++;
+                        rem--;
+                    }
+
+                    displs[i] = sum;
+                    sum += sendcounts[i];
+                }
+            }
+            MPI_Bcast(sendcounts, numprocs, MPI_INT, 0, MPI_COMM_WORLD);
+
+            // send parts of main array to processes.
+            MPI_Scatterv(ranArry, sendcounts, displs, MPI_INT, localArray, (size/numprocs) + 1, MPI_INT, 0, MPI_COMM_WORLD);
+            
+            sumParity = 0; // sum of even numbers for current process
+            for (i = 0; i < sendcounts[myid]; i++)
+            {
+                printf ("Myid: %d, randArray index: %d, vale: %d\n", myid, i, localArray[i]);
+                if (localArray[i] % 2 == 0)
+                    sumParity++;
+            }
+            MPI_Reduce(&sumParity, &totalParity, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+            
+            if (myid == 0)
+            {
+                printf("***********Number of even numbers: %d\n", totalParity);
+            }
+            
+        }
+
+        free (ranArry);
+        free (localArray);
+        free (sendcounts);
+        free (displs);
     }
-    else{
-        //client commands
-        MPI_Send(name, 80, MPI_CHAR, 0, 999, MPI_COMM_WORLD);
-    }
+
+    free(ranArry);
     MPI_Finalize();
+
+    return 0;
 }
+
+/**
+ * Populate the array with random numbers from the given range.
+ */
+void PopulateArray(int *arry, int size, int range)
+{
+    for (int i = 0; i < size; i++)
+    {
+        arry[i] = rand() % (range + 1);
+    }
+}
+
+void PrintArray(int *array, int size)
+{
+    printf("Array Contents: ");
+    for (int i = 0; i < size; i++)
+    {
+        printf("%d, ", array[i]);
+    }
+    printf("\n");
+}
+
