@@ -10,7 +10,7 @@ void PrintArray(int *, int);
 
 int main(int argc, char *argv[])
 {
-    int size, myid, numprocs, i;
+    int size, myid, numprocs;
     int *sendcounts, *displs; // Array for how many elements to send and displacement of elements.
     int *ranArry = NULL; //array of random size.
     int *localArray; // used to store random values for each process.
@@ -18,8 +18,7 @@ int main(int argc, char *argv[])
     int sum = 0; // Sum of counts. Used to calculate displacements
     int range; //Range for the random numbers
     int totalParity, sumParity;
-    double PI25DT = 3.14159265358979323846264;
-    double mypi, pi, h, x;
+
     
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
@@ -29,11 +28,11 @@ int main(int argc, char *argv[])
     {
         if (myid == 0)
         {
-
+            size = 0;
+            totalParity = 0;
             // Enter the size of the array and allocs memory.
             printf("Enter the size of the array: (0 quits) ");
             scanf("%d", &size);
-            ranArry = (int *)malloc(size * sizeof(int));
         }
         MPI_Bcast(&size, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
@@ -45,21 +44,22 @@ int main(int argc, char *argv[])
         else
         {
 
-            localArray = (int *)malloc(size/numprocs+1 * sizeof(int));
+            localArray = (int *)malloc(((size/numprocs) + 1) * sizeof(int));
             sendcounts = (int *)malloc(numprocs * sizeof(int));
             displs = (int *)malloc(numprocs * sizeof(int));
 
             if (myid == 0)
             {
-                //sets the random range for numbers to be gen.
-                srand(time(NULL));
+                ranArry = (int *)malloc(size * sizeof(int)); // create random array
+                srand(time(NULL)); //sets the random range for numbers to be gen.
                 printf("Enter Range for random numbers: ");
                 scanf("%d", &range);
                 
-                PopulateArray(ranArry, size, range);
-                //PrintArray(ranArry, size);
+                PopulateArray(ranArry, size, range); // add random numbers to array
+                PrintArray(ranArry, size);
 
-                rem = size % numprocs;
+                rem = size % numprocs; // remaining slots
+
                 // calculate send counts and displacements
                 for (int i = 0; i < numprocs; i++) 
                 {
@@ -80,14 +80,14 @@ int main(int argc, char *argv[])
             MPI_Scatterv(ranArry, sendcounts, displs, MPI_INT, localArray, (size/numprocs) + 1, MPI_INT, 0, MPI_COMM_WORLD);
             
             sumParity = 0; // sum of even numbers for current process
-            for (i = 0; i < sendcounts[myid]; i++)
+            for (int i = 0; i < sendcounts[myid]; i++)
             {
-                printf ("Myid: %d, randArray index: %d, vale: %d\n", myid, i, localArray[i]);
+                //printf ("Myid: %d, randArray index: %d, vale: %d\n", myid, i, localArray[i]);
                 if (localArray[i] % 2 == 0)
                     sumParity++;
             }
             MPI_Reduce(&sumParity, &totalParity, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-            
+            MPI_Barrier(MPI_COMM_WORLD);
             if (myid == 0)
             {
                 printf("***********Number of even numbers: %d\n", totalParity);
@@ -95,13 +95,16 @@ int main(int argc, char *argv[])
             
         }
 
-        free (ranArry);
+        if (myid == 0)
+        {
+            free (ranArry);
+        }
         free (localArray);
         free (sendcounts);
         free (displs);
+        break;
     }
 
-    free(ranArry);
     MPI_Finalize();
 
     return 0;
