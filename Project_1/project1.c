@@ -7,12 +7,13 @@
 // Function Declartions.
 void PopulateArray(int *, int, int);
 void PrintArray(int *, int);
+int isPrime(int);
 
 int main(int argc, char *argv[])
 {
     int size, myid, numprocs;
     int *sendcounts, *displs; // Array for how many elements to send and displacement of elements.
-    int *ranArry = NULL; //array of random size.
+    int *ranArry; //array of random size.
     int *localArray; // used to store random values for each process.
     int *localFreqTable; // Store the frequency of distink values.
     int *totalFreqTable; // store sum of freq
@@ -53,11 +54,13 @@ int main(int argc, char *argv[])
             sendcounts = (int *)malloc(numprocs * sizeof(int));
             displs = (int *)malloc(numprocs * sizeof(int));
 
+
             // Process 0 will create the random array and determine the size of each of the other
             // processes, include self
             if (myid == 0)
             {
                 ranArry = (int *)malloc(size * sizeof(int)); // create random array
+
                 srand(time(NULL)); //sets the random range for numbers to be gen.
                 printf("Enter Range for random numbers: ");
                 scanf("%d", &range);
@@ -110,6 +113,10 @@ int main(int argc, char *argv[])
             if (myid == 0)
             {
                 endTime = MPI_Wtime();
+                printf("//*************************************************************\\\\\n");
+                printf("||                       results                               ||\n");
+                printf("\\\\*************************************************************//\n\n");
+
                 printf("***Number of even numbers: %d\n", totalParity);
                 printf("***Freq Table: ");
                 PrintArray(totalFreqTable, range + 1);
@@ -117,18 +124,19 @@ int main(int argc, char *argv[])
             }
             
         }
-
-        if (myid == 0)
-        {
-            free (ranArry);
-            free (totalFreqTable);
-        }
-        free (localArray);
-        free (sendcounts);
-        free (displs);
-        free (localFreqTable);
         break;
     }
+
+    //Free up used memory
+    if (myid == 0)
+    {
+        free (ranArry);
+        free (totalFreqTable);
+    }
+    free (localArray);
+    free (sendcounts);
+    free (displs);
+    free (localFreqTable);    
 
     MPI_Finalize();
 
@@ -149,10 +157,37 @@ void PopulateArray(int *arry, int size, int range)
 void PrintArray(int *array, int size)
 {
     printf("Array Contents: ");
-    for (int i = 0; i < size; i++)
+    for (int i = 0; i < size-1; i++)
     {
         printf("%d, ", array[i]);
     }
+    printf("%d", array[size-1]);
     printf("\n");
+}
+
+/**
+ * Determines if the passed int is prime.
+ * 
+ * Retuns 1 if prime, else 0.
+ */
+int isPrime(int num)
+{
+    if (num == 0 || num == 1 || num == 2)
+        return 1;
+    
+    int i = 2;
+    int x = num; // num divided by i
+    int rem = 0;
+    
+    while (i <= x)
+    {
+        x = num / i;
+        rem = num % i;
+
+        if (rem == 0)
+            return 0;
+        i++;
+    }
+    return 1;
 }
 
