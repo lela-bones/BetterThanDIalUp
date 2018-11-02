@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
                 totalFreqTable = (int *)calloc(range+1, sizeof(int));
             }
             MPI_Bcast(sendcounts, numprocs, MPI_INT, 0, MPI_COMM_WORLD);
-            MPI_Bcast(&range, numprocs, MPI_INT, 0, MPI_COMM_WORLD);
+            MPI_Bcast(&range, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
             localFreqTable = (int *)calloc(range + 1, sizeof(int));
 
