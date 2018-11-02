@@ -1,5 +1,19 @@
+/**********************************************************************************************
+ * FILENAME project1.c                                      High-Preformance Computing Class.
+ * 
+ * Description:
+ * 
+ *      1: Generates an array of size N of random integers (from 0 to M). 
+ *          Random integers are inclusive.
+ *      2: Counts the number of even parity numbers in the array, and report this number.
+ *      3: Counts the distint numbers in the array and report a frequency table.
+ *      4: Determines which of the numbers in the array are prime and reports the % 
+ *          that are prime, as well as a list of those prime numbers.
+ * 
+ * AUTHORS: Matt Matuk, Lela Bones, Preston Mowe... "Spelling
+ * 
+ **********************************************************************************************/
 #include "mpi.h"
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -172,8 +186,10 @@ void PrintArray(int *array, int size)
  */
 int isPrime(int num)
 {
-    if (num == 0 || num == 1 || num == 2)
+    if (num == 1 || num == 2)
         return 1;
+    if (num == 0)
+        return 0;
     
     int i = 2;
     int x = num; // num divided by i
