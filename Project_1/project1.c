@@ -271,6 +271,7 @@ int isPrime(int num)
 
     while (i <= x)
     {
+        x = num / i;
         rem = num % i;
 
         if (rem == 0)
