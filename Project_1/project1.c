@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
             }
 
             MPI_Bcast(sendfreqcounts, numprocs, MPI_INT, 0, MPI_COMM_WORLD);
-            MPI_Bcast(sendfreqdispls, numprocs, MPI_INT, 0, MPI_COMM_WORLD);
+            MPI_Bcast(freqdispls, numprocs, MPI_INT, 0, MPI_COMM_WORLD);
             MPI_Bcast(sendcounts, numprocs, MPI_INT, 0, MPI_COMM_WORLD);
             MPI_Bcast(&range, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
@@ -145,8 +145,6 @@ int main(int argc, char *argv[])
                 localFreqTable[localArray[i]]++;
             }
 
-            int totalPrime = 0;
-            MPI_Reduce(&prime, &totalPrime, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD); // give process 0 sum of primes
 
             MPI_Reduce(&sumParity, &totalParity, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD); // give process 0 sum of parity
             MPI_Reduce(localFreqTable, totalFreqTable, range +1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD); // gives process 0 total freq table
@@ -157,6 +155,7 @@ int main(int argc, char *argv[])
             // Find the amount of zeros in feq array and determines what numbers are prime.
             //***************************************
             localfreqZeros = 0;
+            int totalPrime = 0;
             int prime = 0;
             for (int i = 0; i < sendfreqcounts[myid]; i++)
             {
@@ -175,11 +174,13 @@ int main(int argc, char *argv[])
             }
 
             MPI_Reduce(&localfreqZeros, &TotalFreqZeros, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD); // gives process 0 total freq table
+            MPI_Reduce(&prime, &totalPrime, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD); // give process 0 sum of primes
 
             //MPI_Barrier(MPI_COMM_WORLD); // Might not be needed, but just wanted to make sure all process got here before printing results
             //Display results
             if (myid == 0)
             {
+                float precentPrime = totalPrime/size;
                 endTime = MPI_Wtime();
                 printf("\n\n");
                 printf("//*************************************************************\\\\\n");
@@ -191,7 +192,7 @@ int main(int argc, char *argv[])
                 PrintArray(totalFreqTable, range + 1);
                 printf("Total Distint Numbers: %d\n", range+1 - TotalFreqZeros);
                 printf("Total Number of Primes: %d\n", totalPrime);
-                printf("Total Percent of Primes: %f\n", float(totalPrime/size);
+                printf("Total Percent of Primes: %.2f%%\n", precentPrime);
                 printf("wall clock time = %f seconds\n", endTime - startTime);
             }
 
