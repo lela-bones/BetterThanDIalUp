@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
                     {
                         //printf("Prime found: myid: %d, Number: %d,freq: %d\n", myid, freqdispls[myid]+i, localfreqArray[i]);
                         prime += localfreqArray[i];
-                        localPrimeArray[i+[myid]] = 1;
+                        localPrimeArray[i+freqdispls[myid]] = 1;
                     }
                 }
 
@@ -197,12 +197,16 @@ int main(int argc, char *argv[])
                 printf("Freq Table: ");
                 PrintArray(totalFreqTable, range + 1);
                 printf("Total Distint Numbers: %d\n", range+1 - TotalFreqZeros);
+                printf("Total Prime Numbers: %d\n", totalPrime);
                 printf("List of Primes: ");
-                for (int i = 0; i < range+1; i ++){
-                    if(totalPrimeTable[i] == 1){
-                        printf("%d ", i)
+                for (int i = 0; i < range+1; i ++)
+                {
+                    if(totalPrimeTable[i] == 1)
+                    {
+                        printf("%d, ", i);
                     }
                 }
+                printf("\n");
                 printf("Total Percent of Primes: %.2f%%\n", precentPrime);
                 printf("wall clock time = %f seconds\n", endTime - startTime);
             }
