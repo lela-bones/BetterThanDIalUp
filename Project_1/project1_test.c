@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
     int totalParity, sumParity;
     double PI25DT = 3.14159265358979323846264;
     double mypi, pi, h, sum, x;
-    
+
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
     MPI_Comm_rank(MPI_COMM_WORLD, &myid);
@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
                 srand(time(NULL));
                 printf("Enter Range for random numbers: ");
                 scanf("%d", &range);
-                
+
                 PopulateArray(ranArry, size, range);
                 PrintArray(ranArry, size);
             }
@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
                 printf("pi is approximately %.16f, Error is %.16f\n", pi, fabs(pi-PI25DT));
 
             }
-            
+
         }
     }
     MPI_Finalize();
@@ -95,4 +95,3 @@ void PrintArray(int *array, int size)
     }
     printf("\n");
 }
-
