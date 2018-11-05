@@ -163,7 +163,9 @@ int main(int argc, char *argv[])
                 if (localfreqArray[i] == 0)
                     localfreqZeros++;
                 else{
-                    if(isPrime(freqdispls[myid]+i)){
+                    if(isPrime(freqdispls[myid]+i))
+                    {
+                        //printf("Prime found: myid: %d, Number: %d,freq: %d\n", myid, freqdispls[myid]+i, localfreqArray[i]);
                         prime += localfreqArray[i];
                     }
                 }
@@ -178,17 +180,20 @@ int main(int argc, char *argv[])
 
             //MPI_Barrier(MPI_COMM_WORLD); // Might not be needed, but just wanted to make sure all process got here before printing results
             //Display results
+            double precentPrime = 0.0;
             if (myid == 0)
             {
-                float precentPrime = totalPrime/size;
+                precentPrime = ((float)totalPrime/(float)size) * 100;
                 endTime = MPI_Wtime();
+                //printf("size: %d\n", size);
                 printf("\n\n");
                 printf("//*************************************************************\\\\\n");
                 printf("||                       results                               ||\n");
                 printf("\\\\*************************************************************//\n\n");
 
-                printf("***Number of even numbers: %d\n", totalParity);
-                printf("***Freq Table: ");
+                printf("Total Data: %d\n", size);
+                printf("Number of even numbers: %d\n", totalParity);
+                printf("Freq Table: ");
                 PrintArray(totalFreqTable, range + 1);
                 printf("Total Distint Numbers: %d\n", range+1 - TotalFreqZeros);
                 printf("Total Number of Primes: %d\n", totalPrime);
