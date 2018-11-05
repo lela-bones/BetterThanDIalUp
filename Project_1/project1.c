@@ -26,11 +26,12 @@ int isPrime(int);
 int main(int argc, char *argv[])
 {
     int size, myid, numprocs;
-    int *sendcounts, *displs, *sendfreqcounts, *freqdispls; // Array for how many elements to send and displacement of elements.
+    int *sendcounts, *displs, *sendfreqcounts, *freqdispls, 
+        *sendprimecounts, *sendprimecountsroot, *primedispls; // Array for how many elements to send and displacement of elements.
     int *ranArry; //array of random size.
     int *localArray, *localfreqArray, *localPrimeArray; // used to store random values for each process.
     int *localFreqTable; // Store the frequency of distink values.
-    int *totalFreqTable, *totalPrimeTable; // store sum of freq
+    int *totalFreqTable, *totalPrimeTable, totalPrimeSize; // store sum of freq
     int not_present; //checks if the number appears in the frequency array
     int rem; // remaining elements after division among processes.
     int sum = 0; // Sum of counts. Used to calculate displacements
@@ -70,12 +71,14 @@ int main(int argc, char *argv[])
             displs = (int *)malloc(numprocs * sizeof(int));
             sendfreqcounts = (int *)malloc(numprocs * sizeof(int));
             freqdispls = (int *)malloc(numprocs * sizeof(int));
+            sendprimecounts = (int *)calloc(numprocs, sizeof(int));
 
             // Process 0 will create the random array and determine the size of each of the other
             // processes, include self
             if (myid == 0)
             {
                 ranArry = (int *)malloc(size * sizeof(int)); // create random array
+                sendprimecountsroot = (int *)calloc(numprocs, sizeof(int));
 
                 srand(time(NULL)); //sets the random range for numbers to be gen.
                 printf("Enter Range for random numbers: ");
@@ -117,7 +120,6 @@ int main(int argc, char *argv[])
 
                     sum += sendfreqcounts[i];
                 }
-                totalPrimeTable = (int *)calloc(range+1, sizeof(int));
                 totalFreqTable = (int *)calloc(range+1, sizeof(int));
             }
 
@@ -129,10 +131,12 @@ int main(int argc, char *argv[])
             localArray = (int *)malloc(sendcounts[myid] * sizeof(int));
             localFreqTable = (int *)calloc(range + 1, sizeof(int));
             localfreqArray = (int *)malloc(sendfreqcounts[myid] * sizeof(int));
-            localPrimeArray = (int *)calloc(range+1, sizeof(int));
             // send parts of main array to processes.
             MPI_Scatterv(ranArry, sendcounts, displs, MPI_INT, localArray, sendcounts[myid], MPI_INT, 0, MPI_COMM_WORLD);
 
+            //*****************************************************************************
+            // Find the even parity adn freq of numbers in the data
+            //*****************************************************************************
             sumParity = 0; // sum of even numbers for current process
             for (int i = 0; i < sendcounts[myid]; i++)
             {
@@ -144,15 +148,14 @@ int main(int argc, char *argv[])
                 localFreqTable[localArray[i]]++;
             }
 
-
             MPI_Reduce(&sumParity, &totalParity, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD); // give process 0 sum of parity
             MPI_Reduce(localFreqTable, totalFreqTable, range +1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD); // gives process 0 total freq table
-
             MPI_Scatterv(totalFreqTable, sendfreqcounts, freqdispls, MPI_INT, localfreqArray, sendfreqcounts[myid], MPI_INT, 0, MPI_COMM_WORLD);
 
-            //***************************************
+            //*****************************************************************************
             // Find the amount of zeros in feq array and determines what numbers are prime.
-            //***************************************
+            //*****************************************************************************
+            localPrimeArray = (int *)malloc(sendcounts[myid] * sizeof(int));
             localfreqZeros = 0;
             int totalPrime = 0;
             int prime = 0;
@@ -165,21 +168,35 @@ int main(int argc, char *argv[])
                     if(isPrime(freqdispls[myid]+i))
                     {
                         //printf("Prime found: myid: %d, Number: %d,freq: %d\n", myid, freqdispls[myid]+i, localfreqArray[i]);
-                        prime += localfreqArray[i];
-                        localPrimeArray[i+freqdispls[myid]] = 1;
+                        prime += localfreqArray[i]; // increment the current processes total prime found
+                        localPrimeArray[sendprimecounts[myid]] = freqdispls[myid]+i; // add the current prime number to the local array
+                        sendprimecounts[myid]++; // increase the the size of the local prime number array.
                     }
                 }
-
-                //TODO: determine what number are prime. Remember that the localfreqarray index locations will
-                // be from 0-n for each process. Need to account for that what picking the number to determine
-                // if it is prime. Could Bcast eh freqdispls array and add the offsets to the current localfreqarray index.
             }
 
-            MPI_Reduce(localPrimeArray, totalPrimeTable, range+1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD); // gives process 0 total freq table
+            // Gather the needed to display the amount of primes and create an array of only prime numbers.
             MPI_Reduce(&localfreqZeros, &TotalFreqZeros, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD); // gives process 0 total freq table
             MPI_Reduce(&prime, &totalPrime, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD); // give process 0 sum of primes
+            MPI_Reduce(sendprimecounts, sendprimecountsroot, numprocs, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD); // give process 0 sum of primes
+            MPI_Reduce(&(sendprimecounts[myid]), &totalPrimeSize, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
+            // Root process, 0, determine the displacments of the gathered prime numbers arrays. The
+            // displacement is just the previous displace + the previous array size. 
+            if (myid == 0)
+            {
+                primedispls = (int *)calloc(numprocs, sizeof(int));
+                for (int i = 1; i < numprocs; i++)
+                {
+                    primedispls[i] = sendprimecountsroot[i-1] + primedispls[i-1];
+                }
+                totalPrimeTable = (int *)calloc(totalPrimeSize, sizeof(int));
+            }
+            MPI_Gatherv(localPrimeArray, sendprimecounts[myid], MPI_INT, totalPrimeTable, sendprimecountsroot, primedispls, MPI_INT, 0, MPI_COMM_WORLD);
+
+            //MPI_Reduce(localPrimeArray, totalPrimeTable, range+1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD); // gives process 0 total freq table
             //MPI_Barrier(MPI_COMM_WORLD); // Might not be needed, but just wanted to make sure all process got here before printing results
+            
             //Display results
             double precentPrime = 0.0;
             if (myid == 0)
@@ -190,29 +207,28 @@ int main(int argc, char *argv[])
                 printf("\n\n");
                 printf("//*************************************************************\\\\\n");
                 printf("||                       results                               ||\n");
-                printf("\\\\*************************************************************//\n\n");
-
-                printf("Total Data: %d\n", size);
-                printf("Number of even numbers: %d\n", totalParity);
-                printf("Freq Table: ");
+                printf("||*************************************************************||\n");
+                printf("||\n");
+                printf("||   Total Data: %d\n", size);
+                printf("||   Number of even numbers: %d\n", totalParity);
+                printf("||   Total Distint Numbers: %d\n", range+1 - TotalFreqZeros);
+                printf("||   Freq Table (Index = Value): ");
                 PrintArray(totalFreqTable, range + 1);
-                printf("Total Distint Numbers: %d\n", range+1 - TotalFreqZeros);
-                printf("Total Prime Numbers: %d\n", totalPrime);
-                printf("List of Primes: ");
-                for (int i = 0; i < range+1; i ++)
-                {
-                    if(totalPrimeTable[i] == 1)
-                    {
-                        printf("%d, ", i);
-                    }
-                }
-                printf("\n");
-                printf("Total Percent of Primes: %.2f%%\n", precentPrime);
-                printf("wall clock time = %f seconds\n", endTime - startTime);
+                printf("||\n");
+                printf("||   Total Prime Numbers: %d\n", totalPrime);
+                printf("||   Total Percent of Primes: %.2f%%\n", precentPrime);
+                printf("||   List of Primes: ");
+                PrintArray(totalPrimeTable, totalPrimeSize);
+                printf("||\n");
+                printf("||   wall clock time = %f seconds\n", endTime - startTime);
+                printf("||\n");
+                printf("||*************************************************************||\\\n");
+                printf("||                           END                               ||\n");
+                printf("\\\\*************************************************************//\n\n");
             }
 
         }
-        break;
+        break; // stops from looping. May fix looping memory leak problem later.
     }
 
     //Free up used memory
@@ -221,12 +237,15 @@ int main(int argc, char *argv[])
         free (ranArry);
         free (totalFreqTable);
         free (totalPrimeTable);
+        free (sendprimecountsroot);
     }
     free (localArray);
     free (sendcounts);
     free (displs);
     free (localFreqTable);
     free (localPrimeArray);
+    free (sendprimecounts);
+    free (primedispls);
 
     MPI_Finalize();
 
@@ -244,11 +263,19 @@ void PopulateArray(int *arry, int size, int range)
     }
 }
 
+/**
+ * Print the passed array.
+ */
 void PrintArray(int *array, int size)
 {
-    printf("Array Contents: ");
+    //printf("Array Contents: ");
     for (int i = 0; i < size-1; i++)
     {
+        if (i % 15 == 0)
+        {
+            printf("\n");
+            printf("||   ");
+        }
         printf("%d, ", array[i]);
     }
     printf("%d", array[size-1]);
@@ -267,13 +294,24 @@ int isPrime(int num)
     if (num == 0)
         return 0;
 
-    int i = 2;
+    int i = 2; // start of check
     int x = num; // num divided by i
-    int rem = 0;
+    int rem = 0; // remainder
 
+    // Continues to check if the number is prime by starting at 2.
+    //
+    // eg: 23
+    //      x = 23 / 2 = 11;
+    //      i = 2;
+    //      rem = 23 % 2 = 1;
+    //      
+    //  Since rem != 0, then continue to check. i will increase while x decreases until
+    //  x < i. This prevents double checks for prime numbers, since 2 * 3 and 3 * 2 are the 
+    //  same.
+    //  
     while (i <= x)
     {
-        x = num / i;
+        x = num / i; 
         rem = num % i;
 
         if (rem == 0)
