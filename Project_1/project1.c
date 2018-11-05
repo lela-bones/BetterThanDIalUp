@@ -66,7 +66,6 @@ int main(int argc, char *argv[])
         }
         else
         {
-            localArray = (int *)malloc(((size/numprocs) + 1) * sizeof(int));
             sendcounts = (int *)malloc(numprocs * sizeof(int));
             displs = (int *)malloc(numprocs * sizeof(int));
             sendfreqcounts = (int *)malloc(numprocs * sizeof(int));
@@ -126,12 +125,13 @@ int main(int argc, char *argv[])
             MPI_Bcast(freqdispls, numprocs, MPI_INT, 0, MPI_COMM_WORLD);
             MPI_Bcast(sendcounts, numprocs, MPI_INT, 0, MPI_COMM_WORLD);
             MPI_Bcast(&range, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
+            
+            localArray = (int *)malloc(sendcounts[myid] * sizeof(int));
             localFreqTable = (int *)calloc(range + 1, sizeof(int));
             localfreqArray = (int *)malloc(sendfreqcounts[myid] * sizeof(int));
             localPrimeArray = (int *)calloc(range+1, sizeof(int));
             // send parts of main array to processes.
-            MPI_Scatterv(ranArry, sendcounts, displs, MPI_INT, localArray, (size/numprocs) + 1, MPI_INT, 0, MPI_COMM_WORLD);
+            MPI_Scatterv(ranArry, sendcounts, displs, MPI_INT, localArray, sendcounts[myid], MPI_INT, 0, MPI_COMM_WORLD);
 
             sumParity = 0; // sum of even numbers for current process
             for (int i = 0; i < sendcounts[myid]; i++)
