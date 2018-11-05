@@ -172,7 +172,7 @@ int main(int argc, char *argv[])
 
                 //TODO: determine what number are prime. Remember that the localfreqarray index locations will
                 // be from 0-n for each process. Need to account for that what picking the number to determine
-                // if it is prime. Could Bcast eh freqdispls arraay and add the offsets to the current localfreqarray index.
+                // if it is prime. Could Bcast eh freqdispls array and add the offsets to the current localfreqarray index.
             }
 
             MPI_Reduce(&localfreqZeros, &TotalFreqZeros, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD); // gives process 0 total freq table
@@ -259,9 +259,9 @@ int isPrime(int num)
     int x = num; // num divided by i
     int rem = 0;
 
+    x = num / i;
     while (i <= x)
     {
-        x = num / i;
         rem = num % i;
 
         if (rem == 0)
