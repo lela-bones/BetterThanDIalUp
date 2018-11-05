@@ -220,11 +220,13 @@ int main(int argc, char *argv[])
     {
         free (ranArry);
         free (totalFreqTable);
+        free (totalPrimeTable);
     }
     free (localArray);
     free (sendcounts);
     free (displs);
     free (localFreqTable);
+    free (localPrimeArray);
 
     MPI_Finalize();
 
