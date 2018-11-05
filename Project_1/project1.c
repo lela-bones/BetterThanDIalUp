@@ -28,9 +28,9 @@ int main(int argc, char *argv[])
     int size, myid, numprocs;
     int *sendcounts, *displs, *sendfreqcounts, *freqdispls; // Array for how many elements to send and displacement of elements.
     int *ranArry; //array of random size.
-    int *localArray, *localfreqArray; // used to store random values for each process.
+    int *localArray, *localfreqArray, *localPrimeArray; // used to store random values for each process.
     int *localFreqTable; // Store the frequency of distink values.
-    int *totalFreqTable; // store sum of freq
+    int *totalFreqTable, *totalPrimeTable; // store sum of freq
     int not_present; //checks if the number appears in the frequency array
     int rem; // remaining elements after division among processes.
     int sum = 0; // Sum of counts. Used to calculate displacements
@@ -71,7 +71,6 @@ int main(int argc, char *argv[])
             displs = (int *)malloc(numprocs * sizeof(int));
             sendfreqcounts = (int *)malloc(numprocs * sizeof(int));
             freqdispls = (int *)malloc(numprocs * sizeof(int));
-
 
             // Process 0 will create the random array and determine the size of each of the other
             // processes, include self
@@ -119,7 +118,7 @@ int main(int argc, char *argv[])
 
                     sum += sendfreqcounts[i];
                 }
-
+                totalPrimeTable = (int *)calloc(range+1, sizeof(int));
                 totalFreqTable = (int *)calloc(range+1, sizeof(int));
             }
 
@@ -130,7 +129,7 @@ int main(int argc, char *argv[])
 
             localFreqTable = (int *)calloc(range + 1, sizeof(int));
             localfreqArray = (int *)malloc(sendfreqcounts[myid] * sizeof(int));
-
+            localPrimeArray = (int *)calloc(range+1, sizeof(int));
             // send parts of main array to processes.
             MPI_Scatterv(ranArry, sendcounts, displs, MPI_INT, localArray, (size/numprocs) + 1, MPI_INT, 0, MPI_COMM_WORLD);
 
@@ -167,6 +166,7 @@ int main(int argc, char *argv[])
                     {
                         //printf("Prime found: myid: %d, Number: %d,freq: %d\n", myid, freqdispls[myid]+i, localfreqArray[i]);
                         prime += localfreqArray[i];
+                        localPrimeArray[i+[myid]] = 1;
                     }
                 }
 
@@ -175,6 +175,7 @@ int main(int argc, char *argv[])
                 // if it is prime. Could Bcast eh freqdispls array and add the offsets to the current localfreqarray index.
             }
 
+            MPI_Reduce(localPrimeArray, totalPrimeTable, range+1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD); // gives process 0 total freq table
             MPI_Reduce(&localfreqZeros, &TotalFreqZeros, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD); // gives process 0 total freq table
             MPI_Reduce(&prime, &totalPrime, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD); // give process 0 sum of primes
 
@@ -196,7 +197,12 @@ int main(int argc, char *argv[])
                 printf("Freq Table: ");
                 PrintArray(totalFreqTable, range + 1);
                 printf("Total Distint Numbers: %d\n", range+1 - TotalFreqZeros);
-                printf("Total Number of Primes: %d\n", totalPrime);
+                printf("List of Primes: ");
+                for (int i = 0; i < range+1; i ++){
+                    if(totalPrimeTable[i] == 1){
+                        printf("%d ", i)
+                    }
+                }
                 printf("Total Percent of Primes: %.2f%%\n", precentPrime);
                 printf("wall clock time = %f seconds\n", endTime - startTime);
             }
