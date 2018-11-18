@@ -19,6 +19,7 @@ import math
 import random
 import matplotlib.pyplot as plt
 import numpy as np 
+np.set_printoptions(threshold=np.nan)
 
 def sub_Tri(tri):
     r = []
@@ -113,26 +114,15 @@ if rank == 0:
 #combining all of the lists together
 comm.Gather(areas, recv_area, root = 0)
 
+pdt = None
 if rank == 0:
-    #creating a frequency table of areas
-    unique, counts = np.unique(recv_area, return_counts = True)
     #setting the error to be .001
-    unique = np.round(unique, decimals = 3)
+    areas = np.round(recv_area, decimals = 3)
+    unique, counts = np.unique(areas, return_counts = True)
+    pdt = np.array([unique, counts]).T
+    for p in pdt:
+        p[1] = p[1] / num
+    print('===========================================================================')
+    print('The probability distribution table is:')
+    print(pdt)
     
-
-#allocating space for the probability distribution
-pdt = np.empty(num, dtype = 'd')
-comm.Scatter(recv_area, pdt, root=0)
-
-
-for prob in pdt:
-    pdt[1] = pdt[1] / (num * comm.size)
-    
-# comm.Gather()
-#     sub_tri = sub_Tri(triangle)
-#     plt.figure()
-#     plt.scatter(triangle[:, 0], triangle[:, 1])
-#     tri = plt.Polygon(triangle[:3, :])
-#     plt.gca().add_patch(tri)
-#     plt.scatter(sub_tri[:, 0], sub_tri[:, 1])
-#     plt.show()
