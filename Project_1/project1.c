@@ -238,6 +238,7 @@ int main(int argc, char *argv[])
         free (totalFreqTable);
         free (totalPrimeTable);
         free (sendprimecountsroot);
+	free (primedispls);
     }
     free (localArray);
     free (sendcounts);
@@ -245,7 +246,6 @@ int main(int argc, char *argv[])
     free (localFreqTable);
     free (localPrimeArray);
     free (sendprimecounts);
-    free (primedispls);
 
     MPI_Finalize();
 
