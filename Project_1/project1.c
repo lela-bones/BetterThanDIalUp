@@ -39,7 +39,12 @@ int main(int argc, char *argv[])
     int totalParity, sumParity;
     int localfreqZeros, TotalFreqZeros; // stores the local and total amount of zeros in the freq array.
     double startTime = 0.0, endTime;
-
+	
+    if (argc < 3)
+    {
+	printf("Error not enough args");
+	exit(1);
+    }
 
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
@@ -53,8 +58,9 @@ int main(int argc, char *argv[])
             totalParity = 0;
             TotalFreqZeros = 0;
             // Enter the size of the array and allocs memory.
-            printf("Enter the size of the array: (0 quits) ");
-            scanf("%d", &size);
+            //printf("Enter the size of the array: (0 quits) ");
+            //scanf("%d", &size);
+	    size = atoi(argv[1]);
         }
         if (myid == 0)
             startTime = MPI_Wtime();
@@ -81,8 +87,9 @@ int main(int argc, char *argv[])
                 sendprimecountsroot = (int *)calloc(numprocs, sizeof(int));
 
                 srand(time(NULL)); //sets the random range for numbers to be gen.
-                printf("Enter Range for random numbers: ");
-                scanf("%d", &range);
+                //printf("Enter Range for random numbers: ");
+                //scanf("%d", &range);
+		range = atoi(argv[2]);		
 
                 PopulateArray(ranArry, size, range); // add random numbers to array
                 //PrintArray(ranArry, size);
