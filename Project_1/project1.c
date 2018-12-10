@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
     int localfreqZeros, TotalFreqZeros; // stores the local and total amount of zeros in the freq array.
     double startTime = 0.0, endTime;
 	
-    if (argc < 3)
+    if (argc < 4)
     {
 	printf("Error not enough args");
 	exit(1);
@@ -49,8 +49,9 @@ int main(int argc, char *argv[])
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
     MPI_Comm_rank(MPI_COMM_WORLD, &myid);
-
-    while (1)
+    
+    int loop = atoi(argv[3]);
+    while (loop > 0)
     {
         if (myid == 0)
         {
@@ -235,7 +236,8 @@ int main(int argc, char *argv[])
             }
 
         }
-        break; // stops from looping. May fix looping memory leak problem later.
+    loop--;
+    //break; // stops from looping. May fix looping memory leak problem later.
     }
 
     //Free up used memory
